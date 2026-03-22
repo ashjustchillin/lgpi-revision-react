@@ -5,10 +5,24 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'sans-serif'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'SF Pro Display',
+          'SF Pro Text',
+          'Segoe UI',
+          'Helvetica Neue',
+          'Arial',
+          'sans-serif',
+        ],
       },
-      colors: {
-        accent: 'var(--accent)',
+      fontSize: {
+        'xs': ['0.75rem', { lineHeight: '1.5' }],
+        'sm': ['0.875rem', { lineHeight: '1.5715' }],
+        'base': ['1rem', { lineHeight: '1.5' }],
+      },
+      borderWidth: {
+        '1.5': '1.5px',
       },
       animation: {
         shimmer: 'shimmer 1.5s infinite',
