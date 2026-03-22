@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #6C63FF;
+  --accent-bg: #eeeeff;
+  --accent-light: rgba(108,99,255,.1);
+}
+
+@layer base {
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .btn-accent {
+    @apply px-4 py-2 text-white rounded-xl text-sm font-semibold transition-all active:scale-95;
+    background: var(--accent);
+  }
+  .btn-accent:hover { filter: brightness(.88); }
+
+  .btn-ghost {
+    @apply px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 dark:border-zinc-700 bg-transparent text-gray-500 dark:text-zinc-400 transition-all;
+  }
+
+  .card-base {
+    @apply bg-white dark:bg-zinc-800 rounded-2xl border border-gray-200 dark:border-zinc-700 transition-all duration-150;
+  }
+
+  .input-base {
+    @apply w-full px-3 py-2.5 rounded-xl border-1.5 border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 text-sm outline-none transition-all;
+  }
+  .input-base:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+
+  /* SKELETON */
+  .skeleton {
+    @apply rounded-2xl border border-gray-100 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden relative;
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,.15) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  .dark .skeleton::after {
+    background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,.05) 50%, transparent 75%);
+    background-size: 200% 100%;
+  }
+
+  /* MARKDOWN */
+  .prose-fiche h1 { @apply text-xl font-semibold mt-4 mb-2 tracking-tight; }
+  .prose-fiche h2 { @apply text-lg font-semibold mt-3 mb-1.5; }
+  .prose-fiche h3 { @apply text-base font-semibold mt-2.5 mb-1; }
+  .prose-fiche p  { @apply mb-2; }
+  .prose-fiche ul { @apply ml-5 mb-2 list-disc; }
+  .prose-fiche ol { @apply ml-5 mb-2 list-decimal; }
+  .prose-fiche li { @apply mb-0.5; }
+  .prose-fiche strong { @apply font-semibold; }
+  .prose-fiche em { @apply italic; }
+  .prose-fiche code { @apply bg-gray-100 dark:bg-zinc-700 border border-gray-200 dark:border-zinc-600 rounded px-1.5 py-0.5 font-mono text-xs; }
+  .prose-fiche hr  { @apply border-t border-gray-200 dark:border-zinc-700 my-3; }
+  .prose-fiche blockquote {
+    @apply border-l-2 pl-3 py-1 rounded-r-lg my-2 text-gray-500 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-900;
+    border-color: var(--accent);
+  }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes slideUpPanel {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.animate-slide-up-panel { animation: slideUpPanel .25s ease; }
+
+/* SYNC DOT */
+.sync-ok      { background: #43D9AD; }
+.sync-syncing { background: #FFB547; animation: pulse 1s infinite; }
+.sync-error   { background: #FF6584; }
+@keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:.4 } }
+
+/* COUNTDOWN STATUS BADGES */
+.status-travail  { background: #E0FAF2; color: #1A8C6A; }
+.status-pause    { background: #FFF4DC; color: #996600; }
+.status-fini     { background: #F0F0F0; color: #555; }
+.status-weekend  { background: #FFE8EE; color: #CC3355; }
+
+/* CARD DELETE ANIMATION */
+@keyframes deleteCard {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(.94) translateY(-8px); }
+}
+.card-deleting { animation: deleteCard .3s ease forwards; pointer-events: none; }
+
+/* ACCENT DYNAMIC */
+.text-accent   { color: var(--accent) !important; }
+.bg-accent     { background: var(--accent) !important; }
+.bg-accent-soft{ background: var(--accent-bg) !important; }
+.border-accent { border-color: var(--accent) !important; }
+.ring-accent   { box-shadow: 0 0 0 3px var(--accent-light) !important; }
