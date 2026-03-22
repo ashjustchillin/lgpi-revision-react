@@ -1,6 +1,6 @@
 // Proxy Cloudflare Worker — contourne le CORS
 const WORKER_URL = 'https://lgpi-groq-proxy.ashjacquin70.workers.dev'
-const MODEL = 'llama3-70b-8192'
+const MODEL = 'llama-3.3-70b-versatile'
 
 async function groqCall(messages, maxTokens = 1000) {
   const res = await fetch(WORKER_URL, {
