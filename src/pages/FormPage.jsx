@@ -89,7 +89,7 @@ export default function FormPage({ note, mods, notes, curMod, onSave, onCancel }
                   key={tp.id}
                   whileTap={{ scale: .95 }}
                   onClick={() => setType(tp.id)}
-                  className="px-3 py-1.5 rounded-xl border-1.5 text-sm transition-all"
+                  className="px-3 py-1.5 rounded-xl border-2 text-sm transition-all"
                   style={type === tp.id
                     ? { background: tp.bg, borderColor: tp.color, color: tp.color, fontWeight: 600 }
                     : { borderColor: '#d1d5db', color: '#9ca3af', background: 'transparent' }

@@ -42,7 +42,7 @@ export default function ModFormPage({ onSave, onCancel }) {
               <motion.button
                 key={e} whileTap={{ scale: .9 }}
                 onClick={() => setEmoji(e)}
-                className="w-10 h-10 rounded-xl border-1.5 text-xl flex items-center justify-center transition-all"
+                className="w-10 h-10 rounded-xl border-2 text-xl flex items-center justify-center transition-all"
                 style={emoji === e
                   ? { borderColor: 'var(--accent)', background: 'var(--accent-bg)' }
                   : { borderColor: '#e5e7eb', background: 'transparent' }

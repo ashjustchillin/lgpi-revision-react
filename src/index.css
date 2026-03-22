@@ -31,7 +31,7 @@
   }
 
   .input-base {
-    @apply w-full px-3 py-2.5 rounded-xl border-1.5 border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 text-sm outline-none transition-all;
+    @apply w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 text-sm outline-none transition-all;
   }
   .input-base:focus {
     border-color: var(--accent);
