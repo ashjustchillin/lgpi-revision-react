@@ -1,14 +1,11 @@
-const GROQ_API_KEY = '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'
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+// Proxy Cloudflare Worker — contourne le CORS
+const WORKER_URL = 'https://lgpi-groq-proxy.ashjacquin70.workers.dev'
 const MODEL = 'llama-3.1-70b-versatile'
 
 async function groqCall(messages, maxTokens = 1000) {
-  const res = await fetch(GROQ_URL, {
+  const res = await fetch(WORKER_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: MODEL, messages, max_tokens: maxTokens, temperature: 0.4 }),
   })
   if (!res.ok) throw new Error(`Groq error: ${res.status}`)
