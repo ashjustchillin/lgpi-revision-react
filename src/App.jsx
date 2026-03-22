@@ -9,30 +9,36 @@ import FormPage from './pages/FormPage'
 import ModFormPage from './pages/ModFormPage'
 import RevisionPage from './pages/RevisionPage'
 import { useFirebase } from './hooks/useFirebase'
-import { ACCENT_COLORS } from './lib/firebase'
-
-const PAGES = ['home', 'module', 'fiche', 'form', 'modform', 'revision']
+import { useStats } from './hooks/useStats'
+import { useHistory } from './hooks/useHistory'
+import { usePinned } from './hooks/usePinned'
+import { useNotifications } from './hooks/useNotifications'
+import { useMastery } from './hooks/useMastery'
+import { collection, addDoc } from 'firebase/firestore'
+import { db } from './lib/firebase'
 
 export default function App() {
-  const { notes, mods, syncState, saveNote, deleteNote, saveMod, deleteMod } = useFirebase()
+  const { notes, mods, syncState, saveNote, deleteNote, saveMod, deleteMod, refresh } = useFirebase()
+  const { recordSession, getStreak, getLast7Days, getWorstNotes, getGlobalScore, getTotalReviewed, clearStats, stats } = useStats()
+  const { history, addToHistory } = useHistory()
+  const { pinned, togglePin, isPinned } = usePinned()
+  const { permission: notifPermission, settings: notifSettings, requestPermission, saveSettings: saveNotifSettings, sendNotification } = useNotifications()
+  const { getLevel, getLevelInfo, setLevel, updateFromRevision, getMasteryStats, clearMastery } = useMastery()
 
   const [page, setPage] = useState('home')
   const [curMod, setCurMod] = useState(null)
   const [curFiche, setCurFiche] = useState(null)
   const [editingNote, setEditingNote] = useState(null)
-
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('lgpi-dark') === '1')
   const [accent, setAccent] = useState(() => localStorage.getItem('lgpi-accent') || '#6C63FF')
   const [toast, setToast] = useState({ msg: '', visible: false })
   let toastTimer = null
 
-  // Apply dark mode
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
     localStorage.setItem('lgpi-dark', darkMode ? '1' : '0')
   }, [darkMode])
 
-  // Apply accent
   useEffect(() => {
     document.documentElement.style.setProperty('--accent', accent)
     document.documentElement.style.setProperty('--accent-bg', accent + '22')
@@ -46,7 +52,6 @@ export default function App() {
     toastTimer = setTimeout(() => setToast(t => ({ ...t, visible: false })), 2200)
   }, [])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = e => {
       const tag = document.activeElement.tagName.toLowerCase()
@@ -71,42 +76,73 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [page, editingNote])
 
-  // Navigation helpers
   const goHome = () => { setPage('home'); setCurFiche(null) }
-  const goModule = (modId, ficheId = null) => {
-    setCurMod(modId)
-    if (ficheId) { setCurFiche(ficheId); setPage('fiche') }
-    else setPage('module')
+  const goModule = id => { setCurMod(id); setPage('module') }
+  const goFiche = (id, modId = null) => {
+    if (modId) setCurMod(modId)
+    setCurFiche(id); addToHistory(id); setPage('fiche')
   }
-  const goFiche = id => { setCurFiche(id); setPage('fiche') }
   const goRevision = () => setPage('revision')
 
   const currentNote = notes.find(n => n.id === curFiche)
   const currentMod = mods.find(m => m.id === curMod)
 
+  // Stats
+  const streak = getStreak()
+  const last7Days = getLast7Days()
+  const globalScore = getGlobalScore()
+  const totalReviewed = getTotalReviewed()
+  const worstNotes = getWorstNotes(notes, 5)
+  const masteryStats = getMasteryStats(notes)
+
+  // Import JSON — ajoute les données dans Firebase
+  const handleImportJSON = useCallback(async ({ notes: importNotes, mods: importMods }) => {
+    try {
+      let modCount = 0, noteCount = 0
+      // Importer les modules manquants
+      for (const m of importMods) {
+        if (!mods.find(x => x.id === m.id)) {
+          await addDoc(collection(db, 'modules'), { ...m, createdAt: m.createdAt || Date.now() })
+          modCount++
+        }
+      }
+      // Importer les fiches manquantes
+      for (const n of importNotes) {
+        if (!notes.find(x => x.id === n.id)) {
+          await addDoc(collection(db, 'notes'), n)
+          noteCount++
+        }
+      }
+      await refresh()
+      showToast(`Import réussi : +${noteCount} fiches, +${modCount} modules`)
+    } catch (e) {
+      console.error(e)
+      showToast('Erreur lors de l\'import')
+    }
+  }, [notes, mods, refresh, showToast])
+
+  const pageTitle =
+    page === 'home' ? 'Mes fiches de notes' :
+    page === 'module' ? (currentMod?.label || '') :
+    page === 'fiche' ? (currentNote?.title || '') :
+    page === 'form' ? (editingNote ? 'Modifier' : 'Nouvelle fiche') :
+    page === 'modform' ? 'Nouveau module' : 'Mode révision'
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 transition-colors duration-300">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <Header
-          title={
-            page === 'home' ? 'Mes fiches de notes' :
-            page === 'module' ? (currentMod?.label || '') :
-            page === 'fiche' ? (currentNote?.title || '') :
-            page === 'form' ? (editingNote ? 'Modifier' : 'Nouvelle fiche') :
-            page === 'modform' ? 'Nouveau module' :
-            'Mode révision'
-          }
-          syncState={syncState}
-          darkMode={darkMode}
+          title={pageTitle} syncState={syncState} darkMode={darkMode}
           onDarkToggle={() => setDarkMode(d => !d)}
-          accent={accent}
-          onAccentChange={setAccent}
-          onHome={goHome}
-          onRevision={goRevision}
+          accent={accent} onAccentChange={setAccent}
+          onHome={goHome} onRevision={goRevision}
         />
 
         <AnimatePresence mode="wait">
-          <motion.div key={page}>
+          <motion.div key={page}
+            initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: .18, ease: 'easeOut' }}
+          >
             {page === 'home' && (
               <HomePage
                 mods={mods} notes={notes} syncState={syncState}
@@ -114,49 +150,59 @@ export default function App() {
                 onAddMod={() => setPage('modform')}
                 onDeleteMod={async id => { await deleteMod(id); showToast('Module supprimé') }}
                 onRevision={goRevision}
+                history={history} onFiche={goFiche}
+                stats={stats} streak={streak} last7Days={last7Days}
+                globalScore={globalScore} totalReviewed={totalReviewed}
+                worstNotes={worstNotes}
+                onClearStats={() => { clearStats(); clearMastery(); showToast('Stats réinitialisées') }}
+                notifPermission={notifPermission} notifSettings={notifSettings}
+                onRequestNotifPermission={requestPermission}
+                onSaveNotifSettings={saveNotifSettings}
+                onTestNotif={() => { sendNotification('LGPI Notes', 'Notification test !'); showToast('Notification envoyée !') }}
+                onImportJSON={handleImportJSON}
+                getMasteryLevel={getLevel}
+                masteryStats={masteryStats}
               />
             )}
 
             {page === 'module' && currentMod && (
               <ModulePage
-                mod={currentMod}
-                notes={notes}
+                mod={currentMod} notes={notes}
                 onBack={goHome}
-                onFiche={goFiche}
+                onFiche={id => goFiche(id)}
                 onNewFiche={() => { setEditingNote(null); setPage('form') }}
                 onDeleteNote={async id => { await deleteNote(id); showToast('Fiche supprimée') }}
+                pinned={pinned}
+                onTogglePin={id => {
+                  const was = isPinned(id); togglePin(id)
+                  showToast(was ? 'Désépinglée' : 'Épinglée 📌')
+                }}
+                getMasteryLevel={getLevel}
               />
             )}
 
             {page === 'fiche' && currentNote && currentMod && (
               <FichePage
-                note={currentNote}
-                mod={currentMod}
-                allNotes={notes}
-                onBack={dest => {
-                  if (dest === 'home') goHome()
-                  else if (dest === 'module') setPage('module')
-                }}
+                note={currentNote} mod={currentMod} allNotes={notes}
+                onBack={dest => { if (dest === 'home') goHome(); else setPage('module') }}
                 onEdit={() => { setEditingNote(currentNote); setPage('form') }}
-                onDelete={async () => {
-                  await deleteNote(curFiche)
-                  showToast('Fiche supprimée')
-                  setPage('module')
+                onDelete={async () => { await deleteNote(curFiche); showToast('Fiche supprimée'); setPage('module') }}
+                onFiche={goFiche} onToast={showToast}
+                isPinned={isPinned(curFiche)}
+                onTogglePin={() => {
+                  const was = isPinned(curFiche); togglePin(curFiche)
+                  showToast(was ? 'Désépinglée' : 'Épinglée 📌')
                 }}
-                onFiche={goFiche}
-                onToast={showToast}
+                masteryLevel={getLevel(curFiche)}
+                onMasteryChange={level => { setLevel(curFiche, level); showToast('Niveau mis à jour ' + ['🌱','📖','⚡','🔥','⭐'][level]) }}
               />
             )}
 
             {page === 'form' && (
               <FormPage
-                note={editingNote}
-                mods={mods}
-                notes={notes}
-                curMod={curMod}
+                note={editingNote} mods={mods} notes={notes} curMod={curMod}
                 onSave={async data => {
-                  await saveNote(data)
-                  showToast('Sauvegardé ✓')
+                  await saveNote(data); showToast('Sauvegardé ✓')
                   if (editingNote) { setCurFiche(editingNote.id); setPage('fiche') }
                   else setPage('module')
                 }}
@@ -170,11 +216,7 @@ export default function App() {
 
             {page === 'modform' && (
               <ModFormPage
-                onSave={async data => {
-                  await saveMod(data)
-                  showToast('Module créé ! 🎉')
-                  goHome()
-                }}
+                onSave={async data => { await saveMod(data); showToast('Module créé ! 🎉'); goHome() }}
                 onCancel={goHome}
               />
             )}
@@ -183,6 +225,8 @@ export default function App() {
               <RevisionPage
                 notes={notes} mods={mods}
                 onBack={goHome}
+                onRecordSession={recordSession}
+                onUpdateMastery={updateFromRevision}
               />
             )}
           </motion.div>

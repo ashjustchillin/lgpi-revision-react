@@ -97,6 +97,31 @@
 
 .animate-slide-up-panel { animation: slideUpPanel .25s ease; }
 
+/* HIGHLIGHT RECHERCHE */
+mark {
+  background: #FFE066;
+  color: #1d1d1f;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.dark mark {
+  background: #996600;
+  color: #fff;
+}
+
+/* SEARCH HIGHLIGHT */
+mark {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 600;
+}
+
+/* SCROLLBAR HIDE */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
 /* SYNC DOT */
 .sync-ok      { background: #43D9AD; }
 .sync-syncing { background: #FFB547; animation: pulse 1s infinite; }
