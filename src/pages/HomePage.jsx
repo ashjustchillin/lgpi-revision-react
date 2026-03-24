@@ -19,13 +19,13 @@ export default function HomePage({
   stats, streak, last7Days, globalScore, totalReviewed, worstNotes, onClearStats,
   notifPermission, notifSettings, onRequestNotifPermission, onSaveNotifSettings, onTestNotif,
   onExportJSON, onImportJSON, onImportFiches,
-  getMasteryLevel, masteryStats,
+  getMasteryLevel, masteryStats, srsStats,
 }) {
   const { query, setQuery, results, clear } = useSearch(notes, mods, 200)
   const loading = syncState === 'syncing' && mods.length === 0
 
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="pb-20 sm:pb-0">
 
       {/* Search */}
       <div className="relative mb-5">
@@ -144,13 +144,14 @@ export default function HomePage({
         </>
       )}
 
-      <Planning />
+      <div id="planning-section"><Planning /></div>
 
       <StatsPanel
         stats={stats} streak={streak} last7Days={last7Days}
         globalScore={globalScore} totalReviewed={totalReviewed}
         worstNotes={worstNotes} mods={mods}
         onFiche={onFiche} onClear={onClearStats}
+        srsStats={srsStats}
       />
     </motion.div>
   )

@@ -46,7 +46,7 @@ function Bar({ day, maxTotal }) {
   )
 }
 
-export default function StatsPanel({ stats, streak, last7Days, globalScore, totalReviewed, worstNotes, mods, onFiche, onClear }) {
+export default function StatsPanel({ stats, streak, last7Days, globalScore, totalReviewed, worstNotes, mods, onFiche, onClear, srsStats }) {
   const maxTotal = Math.max(...last7Days.map(d => d.total), 1)
   const hasData = totalReviewed > 0
 
@@ -106,7 +106,20 @@ export default function StatsPanel({ stats, streak, last7Days, globalScore, tota
             </div>
           </div>
 
-          {/* Graphique 7 jours */}
+          {/* SRS Stats */}
+          {srsStats && srsStats.due > 0 && (
+            <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-2xl flex items-center gap-3">
+              <span className="text-2xl">⏰</span>
+              <div>
+                <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                  {srsStats.due} fiche{srsStats.due > 1 ? 's' : ''} a revoir aujourd'hui
+                </p>
+                <p className="text-xs text-orange-500">Mode repetition espacee</p>
+              </div>
+            </div>
+          )}
+
+          {/* Graphique 7 jours */}}
           <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-2xl p-4 mb-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">7 derniers jours</p>
             <div className="flex gap-1 items-end">

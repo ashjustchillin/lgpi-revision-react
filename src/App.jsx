@@ -15,7 +15,9 @@ import { usePinned } from './hooks/usePinned'
 import { useNotifications } from './hooks/useNotifications'
 import { useMastery } from './hooks/useMastery'
 import { useSpacedRepetition } from './hooks/useSpacedRepetition'
+import BottomNav from './components/BottomNav'
 import { useSpacedRepetition } from './hooks/useSpacedRepetition'
+import BottomNav from './components/BottomNav'
 import { collection, addDoc } from 'firebase/firestore'
 import { db } from './lib/firebase'
 
@@ -125,11 +127,7 @@ export default function App() {
       showToast(count + " fiches importees !")
     } catch (e) {
       console.error(e)
-<<<<<<< HEAD
       showToast("Erreur import")
-=======
-      showToast("Erreur lors de l'import Zendesk")
->>>>>>> 76449fe89886e8691fe39216a58561cef665bc7f
     }
   }, [mods, saveNote, refresh, showToast])
 
@@ -165,7 +163,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 transition-colors duration-300">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8">
         <Header
           title={pageTitle} syncState={syncState} darkMode={darkMode}
           onDarkToggle={() => setDarkMode(d => !d)}
@@ -277,6 +275,16 @@ export default function App() {
 
         <Toast message={toast.msg} visible={toast.visible} />
       </div>
+      <BottomNav
+        page={page}
+        srsCount={srsStats?.due || 0}
+        onNavigate={dest => {
+          if (dest === 'home') goHome()
+          else if (dest === 'revision') goRevision()
+          else if (dest === 'search') { goHome(); setTimeout(() => document.querySelector('#global-search')?.focus(), 200) }
+          else if (dest === 'planning') { goHome(); setTimeout(() => document.querySelector('#planning-section')?.scrollIntoView({ behavior: 'smooth' }), 200) }
+        }}
+      />
     </div>
   )
 }
