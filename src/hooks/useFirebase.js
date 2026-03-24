@@ -2,20 +2,47 @@ import { useState, useEffect, useCallback } from 'react'
 import { collection, getDocs, addDoc, setDoc, deleteDoc, doc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
-export function useFirebase() {
-  const [notes, setNotes] = useState([])
-  const [mods, setMods] = useState([])
-  const [syncState, setSyncState] = useState('syncing')
+const CACHE_KEY = 'lgpi-cache'
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-  const fetchAll = useCallback(async () => {
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const { notes, mods, ts } = JSON.parse(raw)
+    if (Date.now() - ts > CACHE_TTL) return null
+    return { notes, mods }
+  } catch { return null }
+}
+
+function saveCache(notes, mods) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ notes, mods, ts: Date.now() }))
+  } catch {}
+}
+
+function clearCache() {
+  try { localStorage.removeItem(CACHE_KEY) } catch {}
+}
+
+export function useFirebase() {
+  // Initialiser depuis le cache pour affichage instantane
+  const [notes, setNotes] = useState(() => loadCache()?.notes || [])
+  const [mods, setMods] = useState(() => loadCache()?.mods || [])
+  const [syncState, setSyncState] = useState(() => loadCache() ? 'ok' : 'syncing')
+
+  const fetchAll = useCallback(async (silent = false) => {
     try {
-      setSyncState('syncing')
+      if (!silent) setSyncState('syncing')
       const [ms, ns] = await Promise.all([
         getDocs(collection(db, 'modules')),
         getDocs(collection(db, 'notes')),
       ])
-      setMods(ms.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)))
-      setNotes(ns.docs.map(d => ({ id: d.id, ...d.data() })))
+      const newMods = ms.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+      const newNotes = ns.docs.map(d => ({ id: d.id, ...d.data() }))
+      setMods(newMods)
+      setNotes(newNotes)
+      saveCache(newNotes, newMods)
       setSyncState('ok')
     } catch (err) {
       console.error(err)
@@ -24,8 +51,15 @@ export function useFirebase() {
   }, [])
 
   useEffect(() => {
-    fetchAll()
-    const interval = setInterval(fetchAll, 30000)
+    // Si cache present, sync en silence en arriere-plan
+    const cached = loadCache()
+    if (cached) {
+      fetchAll(true)
+    } else {
+      fetchAll(false)
+    }
+    // Sync toutes les 60s au lieu de 30s (cache reduit la charge)
+    const interval = setInterval(() => fetchAll(true), 60000)
     return () => clearInterval(interval)
   }, [fetchAll])
 
@@ -38,8 +72,8 @@ export function useFirebase() {
       } else {
         await addDoc(collection(db, 'notes'), data)
       }
-      await fetchAll()
-      setSyncState('ok')
+      clearCache()
+      await fetchAll(false)
     } catch (e) {
       console.error(e)
       setSyncState('error')
@@ -51,8 +85,8 @@ export function useFirebase() {
     setSyncState('syncing')
     try {
       await deleteDoc(doc(db, 'notes', id))
-      await fetchAll()
-      setSyncState('ok')
+      clearCache()
+      await fetchAll(false)
     } catch (e) {
       console.error(e)
       setSyncState('error')
@@ -63,8 +97,8 @@ export function useFirebase() {
     setSyncState('syncing')
     try {
       await addDoc(collection(db, 'modules'), { ...data, createdAt: Date.now() })
-      await fetchAll()
-      setSyncState('ok')
+      clearCache()
+      await fetchAll(false)
     } catch (e) {
       console.error(e)
       setSyncState('error')
@@ -78,8 +112,8 @@ export function useFirebase() {
       await deleteDoc(doc(db, 'modules', id))
       const toDelete = notes.filter(n => n.module === id)
       await Promise.all(toDelete.map(n => deleteDoc(doc(db, 'notes', n.id))))
-      await fetchAll()
-      setSyncState('ok')
+      clearCache()
+      await fetchAll(false)
     } catch (e) {
       console.error(e)
       setSyncState('error')

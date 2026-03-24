@@ -14,6 +14,8 @@ import { useHistory } from './hooks/useHistory'
 import { usePinned } from './hooks/usePinned'
 import { useNotifications } from './hooks/useNotifications'
 import { useMastery } from './hooks/useMastery'
+import { useSpacedRepetition } from './hooks/useSpacedRepetition'
+import { useSpacedRepetition } from './hooks/useSpacedRepetition'
 import { collection, addDoc } from 'firebase/firestore'
 import { db } from './lib/firebase'
 
@@ -23,7 +25,9 @@ export default function App() {
   const { history, addToHistory } = useHistory()
   const { pinned, togglePin, isPinned } = usePinned()
   const { permission: notifPermission, settings: notifSettings, requestPermission, saveSettings: saveNotifSettings, sendNotification } = useNotifications()
-  const { getLevel, getLevelInfo, setLevel, updateFromRevision, getMasteryStats, clearMastery } = useMastery()
+  const { getLevel, setLevel, updateFromRevision, getMasteryStats, clearMastery } = useMastery()
+  const { isDue, getDueCount, updateCard: updateSRSCard, sortByPriority, clearSRS } = useSpacedRepetition()
+  const { updateSRS, getDueNotes, getSRSStats, clearSRS } = useSpacedRepetition()
 
   const [page, setPage] = useState('home')
   const [curMod, setCurMod] = useState(null)
@@ -87,20 +91,18 @@ export default function App() {
   const currentNote = notes.find(n => n.id === curFiche)
   const currentMod = mods.find(m => m.id === curMod)
 
-  // Stats
   const streak = getStreak()
   const last7Days = getLast7Days()
   const globalScore = getGlobalScore()
   const totalReviewed = getTotalReviewed()
   const worstNotes = getWorstNotes(notes, 5)
   const masteryStats = getMasteryStats(notes)
+  const srsStats = getSRSStats(notes)
 
-  // Import fiches directes depuis Zendesk
   const handleImportFiches = useCallback(async (fiches) => {
     try {
       let count = 0
       for (const fiche of fiches) {
-        // Trouver le module correspondant par nom
         const mod = mods.find(m => m.label.toLowerCase() === (fiche.module || '').toLowerCase())
           || mods.find(m => fiche.module && m.label.toLowerCase().includes(fiche.module.toLowerCase()))
           || mods[0]
@@ -120,25 +122,22 @@ export default function App() {
         count++
       }
       await refresh()
-      showToast(count + ' fiches Zendesk importées ! 🎫')
+      showToast(count + " fiches importees !")
     } catch (e) {
       console.error(e)
-      showToast('Erreur lors de l'import Zendesk')
+      showToast("Erreur import")
     }
   }, [mods, saveNote, refresh, showToast])
 
-  // Import JSON — ajoute les données dans Firebase
   const handleImportJSON = useCallback(async ({ notes: importNotes, mods: importMods }) => {
     try {
       let modCount = 0, noteCount = 0
-      // Importer les modules manquants
       for (const m of importMods) {
         if (!mods.find(x => x.id === m.id)) {
           await addDoc(collection(db, 'modules'), { ...m, createdAt: m.createdAt || Date.now() })
           modCount++
         }
       }
-      // Importer les fiches manquantes
       for (const n of importNotes) {
         if (!notes.find(x => x.id === n.id)) {
           await addDoc(collection(db, 'notes'), n)
@@ -146,10 +145,10 @@ export default function App() {
         }
       }
       await refresh()
-      showToast(`Import réussi : +${noteCount} fiches, +${modCount} modules`)
+      showToast("+" + noteCount + " fiches importees !")
     } catch (e) {
       console.error(e)
-      showToast('Erreur lors de l\'import')
+      showToast("Erreur import JSON")
     }
   }, [notes, mods, refresh, showToast])
 
@@ -158,13 +157,11 @@ export default function App() {
     page === 'module' ? (currentMod?.label || '') :
     page === 'fiche' ? (currentNote?.title || '') :
     page === 'form' ? (editingNote ? 'Modifier' : 'Nouvelle fiche') :
-    page === 'modform' ? 'Nouveau module' : 'Mode révision'
+    page === 'modform' ? 'Nouveau module' : 'Mode revision'
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 transition-colors duration-300">
-      {/* Fond gradient subtil */}
-      <div className="fixed inset-0 pointer-events-none bg-gradient-home opacity-60 dark:opacity-30" />
-      <div className="relative max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <Header
           title={pageTitle} syncState={syncState} darkMode={darkMode}
           onDarkToggle={() => setDarkMode(d => !d)}
@@ -182,21 +179,22 @@ export default function App() {
                 mods={mods} notes={notes} syncState={syncState}
                 onModule={goModule}
                 onAddMod={() => setPage('modform')}
-                onDeleteMod={async id => { await deleteMod(id); showToast('Module supprimé') }}
+                onDeleteMod={async id => { await deleteMod(id); showToast('Module supprime') }}
                 onRevision={goRevision}
                 history={history} onFiche={goFiche}
                 stats={stats} streak={streak} last7Days={last7Days}
                 globalScore={globalScore} totalReviewed={totalReviewed}
                 worstNotes={worstNotes}
-                onClearStats={() => { clearStats(); clearMastery(); showToast('Stats réinitialisées') }}
+                onClearStats={() => { clearStats(); clearMastery(); clearSRS(); showToast('Stats reinitialisees') }}
                 notifPermission={notifPermission} notifSettings={notifSettings}
                 onRequestNotifPermission={requestPermission}
                 onSaveNotifSettings={saveNotifSettings}
-                onTestNotif={() => { sendNotification('LGPI Notes', 'Notification test !'); showToast('Notification envoyée !') }}
+                onTestNotif={() => { sendNotification('LGPI Notes', 'Notification test !'); showToast('Notification envoyee !') }}
                 onImportJSON={handleImportJSON}
                 onImportFiches={handleImportFiches}
                 getMasteryLevel={getLevel}
                 masteryStats={masteryStats}
+                srsStats={srsStats}
               />
             )}
 
@@ -206,11 +204,11 @@ export default function App() {
                 onBack={goHome}
                 onFiche={id => goFiche(id)}
                 onNewFiche={() => { setEditingNote(null); setPage('form') }}
-                onDeleteNote={async id => { await deleteNote(id); showToast('Fiche supprimée') }}
+                onDeleteNote={async id => { await deleteNote(id); showToast('Fiche supprimee') }}
                 pinned={pinned}
                 onTogglePin={id => {
                   const was = isPinned(id); togglePin(id)
-                  showToast(was ? 'Désépinglée' : 'Épinglée 📌')
+                  showToast(was ? 'Desepinglee' : 'Epinglee !')
                 }}
                 getMasteryLevel={getLevel}
               />
@@ -221,15 +219,18 @@ export default function App() {
                 note={currentNote} mod={currentMod} allNotes={notes}
                 onBack={dest => { if (dest === 'home') goHome(); else setPage('module') }}
                 onEdit={() => { setEditingNote(currentNote); setPage('form') }}
-                onDelete={async () => { await deleteNote(curFiche); showToast('Fiche supprimée'); setPage('module') }}
+                onDelete={async () => { await deleteNote(curFiche); showToast('Fiche supprimee'); setPage('module') }}
                 onFiche={goFiche} onToast={showToast}
                 isPinned={isPinned(curFiche)}
                 onTogglePin={() => {
                   const was = isPinned(curFiche); togglePin(curFiche)
-                  showToast(was ? 'Désépinglée' : 'Épinglée 📌')
+                  showToast(was ? 'Desepinglee' : 'Epinglee !')
                 }}
                 masteryLevel={getLevel(curFiche)}
-                onMasteryChange={level => { setLevel(curFiche, level); showToast('Niveau mis à jour ' + ['🌱','📖','⚡','🔥','⭐'][level]) }}
+                onMasteryChange={level => {
+                  setLevel(curFiche, level)
+                  showToast('Niveau mis a jour !')
+                }}
               />
             )}
 
@@ -237,7 +238,7 @@ export default function App() {
               <FormPage
                 note={editingNote} mods={mods} notes={notes} curMod={curMod}
                 onSave={async data => {
-                  await saveNote(data); showToast('Sauvegardé ✓')
+                  await saveNote(data); showToast('Sauvegarde !')
                   if (editingNote) { setCurFiche(editingNote.id); setPage('fiche') }
                   else setPage('module')
                 }}
@@ -251,7 +252,7 @@ export default function App() {
 
             {page === 'modform' && (
               <ModFormPage
-                onSave={async data => { await saveMod(data); showToast('Module créé ! 🎉'); goHome() }}
+                onSave={async data => { await saveMod(data); showToast('Module cree !'); goHome() }}
                 onCancel={goHome}
               />
             )}
@@ -262,6 +263,9 @@ export default function App() {
                 onBack={goHome}
                 onRecordSession={recordSession}
                 onUpdateMastery={updateFromRevision}
+                getDueNotes={getDueNotes}
+                updateSRS={updateSRS}
+                srsStats={srsStats}
               />
             )}
           </motion.div>

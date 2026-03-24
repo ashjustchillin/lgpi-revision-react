@@ -1,4 +1,19 @@
-import { motion } from 'framer-motion'
+import { motion, useSpring, useTransform, animate } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
+
+function CountUp({ value, suffix = '' }) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    if (!value && value !== 0) return
+    const controls = animate(0, value, {
+      duration: 1.2,
+      ease: 'easeOut',
+      onUpdate: v => setDisplay(Math.round(v))
+    })
+    return controls.stop
+  }, [value])
+  return <span>{display}{suffix}</span>
+}
 
 function Bar({ day, maxTotal }) {
   const height = maxTotal > 0 && day.total > 0
@@ -67,7 +82,7 @@ export default function StatsPanel({ stats, streak, last7Days, globalScore, tota
             {/* Streak */}
             <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-2xl p-4 text-center">
               <div className="text-2xl mb-1">{streak > 0 ? '🔥' : '💤'}</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{streak}</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100"><CountUp value={streak} /></div>
               <p className="text-[11px] text-gray-400 mt-0.5">jour{streak !== 1 ? 's' : ''} de suite</p>
             </div>
 
@@ -78,7 +93,7 @@ export default function StatsPanel({ stats, streak, last7Days, globalScore, tota
                 className="text-2xl font-bold"
                 style={{ color: globalScore >= 70 ? '#43D9AD' : globalScore >= 40 ? '#FFB547' : '#FF6584' }}
               >
-                {globalScore}%
+                <CountUp value={globalScore} suffix="%" />
               </div>
               <p className="text-[11px] text-gray-400 mt-0.5">score moyen</p>
             </div>
@@ -86,7 +101,7 @@ export default function StatsPanel({ stats, streak, last7Days, globalScore, tota
             {/* Total révisées */}
             <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-2xl p-4 text-center">
               <div className="text-2xl mb-1">📚</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{totalReviewed}</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100"><CountUp value={totalReviewed} /></div>
               <p className="text-[11px] text-gray-400 mt-0.5">révisions total</p>
             </div>
           </div>
