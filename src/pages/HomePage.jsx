@@ -18,7 +18,7 @@ export default function HomePage({
   history, onFiche,
   stats, streak, last7Days, globalScore, totalReviewed, worstNotes, onClearStats,
   notifPermission, notifSettings, onRequestNotifPermission, onSaveNotifSettings, onTestNotif,
-  onExportJSON, onImportJSON,
+  onExportJSON, onImportJSON, onImportFiches,
   getMasteryLevel, masteryStats,
 }) {
   const { query, setQuery, results, clear } = useSearch(notes, mods, 200)
@@ -91,7 +91,7 @@ export default function HomePage({
                 onSaveSettings={onSaveNotifSettings}
                 onTest={onTestNotif}
               />
-              <DataIO notes={notes} mods={mods} onImport={onImportJSON} />
+              <DataIO notes={notes} mods={mods} onImport={onImportJSON} onImportFiches={onImportFiches} />
             </div>
           </div>
 

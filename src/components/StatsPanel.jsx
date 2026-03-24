@@ -1,31 +1,32 @@
 import { motion } from 'framer-motion'
 
-function Bar({ day, maxTotal, accent }) {
+function Bar({ day, maxTotal }) {
   const height = maxTotal > 0 && day.total > 0
-    ? Math.max(8, Math.round((day.total / maxTotal) * 80))
+    ? Math.max(6, Math.round((day.total / maxTotal) * 88))
     : 0
-  const color = day.pct === null ? '#e5e7eb'
+  const color = day.pct === null ? 'var(--bar-empty, #e5e7eb)'
     : day.pct >= 70 ? '#43D9AD'
     : day.pct >= 40 ? '#FFB547'
     : '#FF6584'
 
   return (
-    <div className="flex flex-col items-center gap-1 flex-1">
-      <div className="flex flex-col justify-end" style={{ height: 88 }}>
+    <div className="flex flex-col items-center gap-1.5 flex-1">
+      <div className="flex flex-col justify-end items-center gap-1" style={{ height: 100 }}>
         {day.total > 0 && (
-          <span className="text-[10px] text-gray-400 mb-1 text-center">
-            {day.pct !== null ? `${day.pct}%` : ''}
+          <span className="text-[9px] font-semibold" style={{ color }}>
+            {day.pct !== null ? day.pct + '%' : ''}
           </span>
         )}
         <motion.div
           initial={{ height: 0 }}
           animate={{ height }}
-          transition={{ duration: .5, delay: .05 * Math.random() }}
-          className="w-full rounded-t-lg"
-          style={{ background: color, minWidth: 20 }}
+          transition={{ duration: .6, ease: 'easeOut' }}
+          className="w-full rounded-lg"
+          style={{ background: height > 0 ? color : '#f3f4f6', minWidth: 20, opacity: height > 0 ? 1 : 0.3 }}
         />
       </div>
-      <span className="text-[10px] text-gray-400 capitalize">{day.label}</span>
+      <span className="text-[10px] text-gray-400 font-medium capitalize">{day.label}</span>
+      {day.total > 0 && <span className="text-[9px] text-gray-300 dark:text-zinc-600">{day.total}</span>}
     </div>
   )
 }

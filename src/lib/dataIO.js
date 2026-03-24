@@ -35,3 +35,64 @@ export function importJSON(file) {
     reader.readAsText(file)
   })
 }
+
+// Parser un export CSV Zendesk
+// Détecte automatiquement les colonnes selon l'en-tête
+export function parseZendeskCSV(csvText) {
+  const lines = csvText.split('\n').filter(l => l.trim())
+  if (lines.length < 2) throw new Error('Fichier CSV vide ou invalide')
+
+  // Parser une ligne CSV (gère les guillemets)
+  const parseLine = line => {
+    const result = []
+    let cur = '', inQ = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') { inQ = !inQ }
+      else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = '' }
+      else { cur += ch }
+    }
+    result.push(cur.trim())
+    return result
+  }
+
+  const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, '_'))
+
+  // Mapping flexible des colonnes Zendesk (plusieurs noms possibles)
+  const findCol = (...names) => {
+    for (const n of names) {
+      const idx = headers.findIndex(h => h.includes(n))
+      if (idx >= 0) return idx
+    }
+    return -1
+  }
+
+  const cols = {
+    subject:     findCol('subject', 'sujet', 'titre', 'title'),
+    description: findCol('description', 'body', 'contenu'),
+    resolution:  findCol('resolution', 'comment', 'solution', 'reponse', 'reply'),
+    tags:        findCol('tags', 'label', 'etiquette'),
+    status:      findCol('status', 'statut', 'etat'),
+    id:          findCol('id', 'ticket_id', 'numero'),
+    created:     findCol('created', 'date', 'ouvert'),
+  }
+
+  const tickets = []
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseLine(lines[i])
+    if (vals.length < 2) continue
+    const get = idx => idx >= 0 ? (vals[idx] || '').replace(/^"|"$/g, '').trim() : ''
+    tickets.push({
+      id:          get(cols.id) || String(i),
+      subject:     get(cols.subject),
+      description: get(cols.description),
+      resolution:  get(cols.resolution),
+      tags:        get(cols.tags),
+      status:      get(cols.status),
+      created:     get(cols.created),
+    })
+  }
+
+  // Filtrer les tickets sans sujet
+  return tickets.filter(t => t.subject && t.subject.length > 2)
+}

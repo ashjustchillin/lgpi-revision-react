@@ -95,6 +95,38 @@ export default function App() {
   const worstNotes = getWorstNotes(notes, 5)
   const masteryStats = getMasteryStats(notes)
 
+  // Import fiches directes depuis Zendesk
+  const handleImportFiches = useCallback(async (fiches) => {
+    try {
+      let count = 0
+      for (const fiche of fiches) {
+        // Trouver le module correspondant par nom
+        const mod = mods.find(m => m.label.toLowerCase() === (fiche.module || '').toLowerCase())
+          || mods.find(m => fiche.module && m.label.toLowerCase().includes(fiche.module.toLowerCase()))
+          || mods[0]
+        if (!mod) continue
+        await saveNote({
+          title: fiche.title || 'Ticket Zendesk',
+          module: mod.id,
+          content: fiche.content || '',
+          path: fiche.path || '',
+          type: fiche.type || 'attention',
+          links: [],
+          tags: fiche.tags || [],
+          date: new Date().toISOString().slice(0, 10),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        })
+        count++
+      }
+      await refresh()
+      showToast(count + ' fiches Zendesk importées ! 🎫')
+    } catch (e) {
+      console.error(e)
+      showToast('Erreur lors de l'import Zendesk')
+    }
+  }, [mods, saveNote, refresh, showToast])
+
   // Import JSON — ajoute les données dans Firebase
   const handleImportJSON = useCallback(async ({ notes: importNotes, mods: importMods }) => {
     try {
@@ -130,7 +162,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 transition-colors duration-300">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      {/* Fond gradient subtil */}
+      <div className="fixed inset-0 pointer-events-none bg-gradient-home opacity-60 dark:opacity-30" />
+      <div className="relative max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <Header
           title={pageTitle} syncState={syncState} darkMode={darkMode}
           onDarkToggle={() => setDarkMode(d => !d)}
@@ -160,6 +194,7 @@ export default function App() {
                 onSaveNotifSettings={saveNotifSettings}
                 onTestNotif={() => { sendNotification('LGPI Notes', 'Notification test !'); showToast('Notification envoyée !') }}
                 onImportJSON={handleImportJSON}
+                onImportFiches={handleImportFiches}
                 getMasteryLevel={getLevel}
                 masteryStats={masteryStats}
               />

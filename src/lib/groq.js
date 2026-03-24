@@ -50,3 +50,31 @@ Contenu : ${content.slice(0, 400)}`
   const result = await groqCall([{ role: 'user', content: prompt }], 80)
   return result.split(',').map(t => t.trim().toLowerCase()).filter(Boolean).slice(0, 5)
 }
+
+// Convertir un ticket Zendesk en fiche LGPI
+export async function zendeckTicketToFiche(ticket, existingMods = []) {
+  const prompt = `Tu es un expert du logiciel de gestion LGPI. Analyse ce ticket de support Zendesk et transforme-le en fiche de connaissance structurée.
+
+Ticket Zendesk :
+- Sujet : ${ticket.subject || ''}
+- Description : ${(ticket.description || '').slice(0, 800)}
+- Solution/Résolution : ${(ticket.resolution || ticket.comments || '').slice(0, 600)}
+- Tags Zendesk : ${(ticket.tags || '').slice(0, 100)}
+
+Modules LGPI disponibles : ${existingMods.map(m => m.label).join(', ') || 'Gestion de stock, Facturation, Télétransmission, Données Clients, Données Opérateurs, Sérialisation, Crédits'}
+
+Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) avec exactement ces champs :
+{
+  "title": "titre court et précis (max 8 mots)",
+  "type": "procedure ou attention ou astuce ou info",
+  "module": "nom exact du module le plus pertinent parmi ceux disponibles",
+  "path": "chemin dans LGPI si détectable (ex: Stock > Inventaires) sinon vide",
+  "content": "contenu structuré en markdown avec ## sections, - listes, **gras**",
+  "tags": ["tag1", "tag2", "tag3"]
+}`
+
+  const result = await groqCall([{ role: 'user', content: prompt }], 1200)
+  // Nettoyer et parser le JSON
+  const clean = result.replace(/```json|```/g, '').trim()
+  return JSON.parse(clean)
+}
