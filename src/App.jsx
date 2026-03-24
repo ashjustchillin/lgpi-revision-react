@@ -125,7 +125,11 @@ export default function App() {
       showToast(count + " fiches importees !")
     } catch (e) {
       console.error(e)
+<<<<<<< HEAD
       showToast("Erreur import")
+=======
+      showToast("Erreur lors de l'import Zendesk")
+>>>>>>> 76449fe89886e8691fe39216a58561cef665bc7f
     }
   }, [mods, saveNote, refresh, showToast])
 
